@@ -1,0 +1,28 @@
+{
+  "name": "stateville-stats-bot",
+  "version": "1.0.0",
+  "description": "Officiële Discord bot van StateVille voor grind stats uit de Minecraft server",
+  "main": "index.js",
+  "scripts": {
+    "start": "node .",
+    "dev": "nodemon ."
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/rubenuijtdewilligen/stateville-stats-bot.git"
+  },
+  "author": "Ruben Uijtdewilligen <ruben@uijtdewilligenbv.nl>",
+  "license": "GPL-3.0-or-later",
+  "bugs": {
+    "url": "https://github.com/rubenuijtdewilligen/stateville-stats-bot/issues"
+  },
+  "homepage": "https://github.com/rubenuijtdewilligen/stateville-stats-bot#readme",
+  "dependencies": {
+    "discord.js": "^14.7.1",
+    "dotenv": "^16.0.3",
+    "mysql": "^2.18.1"
+  },
+  "devDependencies": {
+    "nodemon": "^2.0.20"
+  }
+}
