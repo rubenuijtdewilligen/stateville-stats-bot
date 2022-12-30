@@ -1,15 +1,7 @@
 // Bring in Node modules
 const { SlashCommandBuilder, EmbedBuilder } = require('discord.js');
-const mysql = require('mysql');
-
-// Connect to MySQL database
-const connection = mysql.createConnection({
-  host: process.env.MYSQL_HOST,
-  user: process.env.MYSQL_USER,
-  password: process.env.MYSQL_PASSWORD,
-  database: process.env.MYSQL_DATABASE,
-});
-connection.connect();
+const axios = require('axios');
+const minecraftPlayer = require('minecraft-player');
 
 // Command magic
 module.exports = {
@@ -19,35 +11,49 @@ module.exports = {
     .addStringOption((option) => option.setName('naam').setDescription('Jouw Minecraft gebruikersnaam').setRequired(true)),
   async execute(interaction) {
     const playerName = interaction.options.getString('naam');
+    const { uuid } = await minecraftPlayer(playerName);
+    if (!uuid) {
+      const notFoundEmbed = new EmbedBuilder()
+        .setColor('#ff5757')
+        .setTitle('❌ Er is geen speler met deze naam gevonden.')
+        .setDescription('Heb je recent je Minecraft gebruikersnaam veranderd? Dan moet je mogelijk eerst opnieuw met de server verbinden.')
+        .setFooter({ text: 'StateVille' })
+        .setTimestamp();
 
-    connection.query(`SELECT * FROM players`, async (error, results) => {
-      if (error) throw error;
+      await interaction.reply({ embeds: [notFoundEmbed] });
+    }
 
-      const i = results.findIndex((player) => player.name === playerName);
-      if (i > -1) {
-        const notFoundEmbed = new EmbedBuilder()
+    axios
+      .post(process.env.API_URL + '/players/get_grindstats', {
+        apiKey: process.env.API_KEY,
+        uuid,
+      })
+      .then(async (res) => {
+        const dataEmbed = new EmbedBuilder()
           .setColor('#66a1ff')
-          .setTitle(`Grind Statistieken van ${results[i].name}`)
-          .setThumbnail(`https://crafatar.com/renders/head/${results[i].uuid}?overlay`)
+          .setTitle(`Grind Statistieken van ${playerName}`)
+          .setThumbnail(`https://crafatar.com/renders/head/${uuid}?overlay`)
           .setDescription(
-            `<:Minecraft_Coal:1057757399190077450> Mine: **${results[i].minePoints}**\n<:Minecraft_Wheat:1057758113652023326> Farm: **${results[i].farmPoints}**\n<:Minecraft_Cod:1057758112360185856> Vissen: **${results[i].visPoints}**\n<:Wiring:1057758258124832779> Stroomkastjes: **${results[i].stroomPoints}**\n<:Trash:1057758598266101841> Vuilniszakken: **${results[i].vuilnisPoints}**`
+            `<:Minecraft_Coal:1057757399190077450> Mine: **${res.data.mine}**\n<:Minecraft_Wheat:1057758113652023326> Farm: **${res.data.farm}**\n<:Minecraft_Cod:1057758112360185856> Vissen: **${res.data.vis}**\n<:Wiring:1057758258124832779> Stroomkastjes: **${res.data.stroom}**\n<:Trash:1057758598266101841> Vuilniszakken: **${res.data.vuilnis}**\n<:Package:1058389037305581599> Pakketjes: **${res.data.pakketjes}**`
           )
           .setFooter({ text: 'StateVille' })
           .setTimestamp();
 
-        await interaction.reply({ embeds: [notFoundEmbed] });
-      } else {
-        const notFoundEmbed = new EmbedBuilder()
-          .setColor('#ff5757')
-          .setTitle('❌ Er is geen speler met deze naam gevonden.')
-          .setDescription(
-            'Heb je recent je Minecraft gebruikersnaam veranderd? Dan moet je mogelijk eerst opnieuw met de server verbinden.'
-          )
-          .setFooter({ text: 'StateVille' })
-          .setTimestamp();
+        await interaction.reply({ embeds: [dataEmbed] });
+      })
+      .catch(async (err) => {
+        if (err.response.status === 500) {
+          const notFoundEmbed = new EmbedBuilder()
+            .setColor('#ff5757')
+            .setTitle('❌ Er is geen speler met deze naam gevonden.')
+            .setDescription(
+              'Heb je recent je Minecraft gebruikersnaam veranderd? Dan moet je mogelijk eerst opnieuw met de server verbinden.'
+            )
+            .setFooter({ text: 'StateVille' })
+            .setTimestamp();
 
-        await interaction.reply({ embeds: [notFoundEmbed] });
-      }
-    });
+          await interaction.reply({ embeds: [notFoundEmbed] });
+        }
+      });
   },
 };
